@@ -34,7 +34,7 @@ export default function App() {
     if (!token) return;
     async function fetchLedger() {
       try {
-        const response = await fetch("http://localhost:3333/ledger", {
+        const response = await fetch("https://cripto-back-26of.onrender.com/ledger", {
           headers: {
             Authorization: `Bearer ${token}`, 
           },
@@ -60,7 +60,7 @@ export default function App() {
 
     try {
  
-      const response = await fetch("http://localhost:3333/login", {
+      const response = await fetch("https://cripto-back-26of.onrender.com/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -93,7 +93,7 @@ export default function App() {
     setSwapStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch("http://localhost:3333/swap", {
+      const response = await fetch("https://cripto-back-26of.onrender.com/swap", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,7 +134,7 @@ export default function App() {
     setWithdrawStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch("http://localhost:3333/withdraw", {
+      const response = await fetch("https://cripto-back-26of.onrender.com/withdraw", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
