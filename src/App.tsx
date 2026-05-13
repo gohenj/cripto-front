@@ -537,7 +537,7 @@ export default function App() {
 
             <div className="space-y-2">
               <label className="text-xs text-slate-400 tracking-wider uppercase">
-                {isRegisterMode ? 'Chave de Segurança (mín. 6 caracteres)' : 'Chave de Segurança'}
+                {isRegisterMode ? 'Senha (mín. 8 caracteres, letras, números e símbolos)' : 'Chave de Segurança'}
               </label>
               <input
                 type="password"
