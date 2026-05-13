@@ -64,7 +64,7 @@ export default function App() {
 
     try {
       // Lembre de usar a sua URL do Render aqui!
-      const response = await fetch("https://SUA_URL_DO_RENDER_AQUI/register", {
+      const response = await fetch("https://cripto-back-26of.onrender.com/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
