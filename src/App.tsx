@@ -12,13 +12,15 @@ export default function App() {
   const [swapAmount, setSwapAmount] = useState("");
   const [swapStatus, setSwapStatus] = useState({ type: "", message: "" });
   const [isSwapping, setIsSwapping] = useState(false);
-  const [activeTab, setActiveTab] = useState("swap"); 
+  const [activeTab, setActiveTab] = useState("swap");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawStatus, setWithdrawStatus] = useState({
     type: "",
     message: "",
   });
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [authMessage, setAuthMessage] = useState({ type: "", text: "" });
 
   function getFriendlyName(type: string) {
     const dictionary: Record<string, string> = {
@@ -28,17 +30,20 @@ export default function App() {
       SWAP_OUT: "Conversão (Enviado)",
       SWAP_FEE: "Cotação",
     };
-    return dictionary[type] || type; 
+    return dictionary[type] || type;
   }
   useEffect(() => {
     if (!token) return;
     async function fetchLedger() {
       try {
-        const response = await fetch("https://cripto-back-26of.onrender.com/ledger", {
-          headers: {
-            Authorization: `Bearer ${token}`, 
+        const response = await fetch(
+          "https://cripto-back-26of.onrender.com/ledger",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
 
         const result = await response.json();
         if (response.ok) {
@@ -53,18 +58,48 @@ export default function App() {
 
     fetchLedger();
   }, [token]);
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthMessage({ type: "", text: "" });
 
+    try {
+      // Lembre de usar a sua URL do Render aqui!
+      const response = await fetch("https://SUA_URL_DO_RENDER_AQUI/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao criar conta");
+      }
+
+      setAuthMessage({
+        type: "success",
+        text: "Conta criada com sucesso! Faça login.",
+      });
+      setTimeout(() => setIsRegisterMode(false), 2500);
+    } catch (err) {
+      if (err instanceof Error) {
+        setAuthMessage({ type: "error", text: err.message });
+      }
+    }
+  }
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
     try {
- 
-      const response = await fetch("https://cripto-back-26of.onrender.com/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        "https://cripto-back-26of.onrender.com/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        },
+      );
 
       const data = await response.json();
 
@@ -93,18 +128,21 @@ export default function App() {
     setSwapStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch("https://cripto-back-26of.onrender.com/swap", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        "https://cripto-back-26of.onrender.com/swap",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            from: swapFrom,
+            to: swapTo,
+            amount: Number(swapAmount),
+          }),
         },
-        body: JSON.stringify({
-          from: swapFrom,
-          to: swapTo,
-          amount: Number(swapAmount),
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -134,17 +172,20 @@ export default function App() {
     setWithdrawStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch("https://cripto-back-26of.onrender.com/withdraw", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        "https://cripto-back-26of.onrender.com/withdraw",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            token: "BRL",
+            amount: Number(withdrawAmount),
+          }),
         },
-        body: JSON.stringify({
-          token: "BRL",
-          amount: Number(withdrawAmount),
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -242,7 +283,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-
 
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {isLoadingLedger ? (
@@ -467,13 +507,20 @@ export default function App() {
           </p>
         </div>
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
-          <form onSubmit={handleLogin} className="space-y-6">
-            {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
-                {error}
-              </div>
-            )}
+          
+          {authMessage.text && (
+            <div className={`mb-6 p-3 text-sm text-center rounded-lg border backdrop-blur-md ${authMessage.type === 'success' ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
+              {authMessage.text}
+            </div>
+          )}
 
+          {error && !authMessage.text && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={isRegisterMode ? handleRegister : handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs text-slate-400 tracking-wider uppercase">
                 Endereço de E-mail
@@ -490,7 +537,7 @@ export default function App() {
 
             <div className="space-y-2">
               <label className="text-xs text-slate-400 tracking-wider uppercase">
-                Chave de Segurança
+                {isRegisterMode ? 'Chave de Segurança (mín. 6 caracteres)' : 'Chave de Segurança'}
               </label>
               <input
                 type="password"
@@ -506,16 +553,22 @@ export default function App() {
               type="submit"
               className="w-full mt-4 bg-green-500 text-slate-950 font-bold tracking-widest uppercase py-3 rounded-lg hover:bg-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] transition-all duration-300"
             >
-              Iniciar Sessão
+              {isRegisterMode ? 'Criar Nova Conta' : 'Iniciar Sessão'}
             </button>
           </form>
         </div>
 
         <div className="text-center mt-6">
           <p className="text-slate-500 text-xs">
-            Ainda não tem acesso?{" "}
-            <span className="text-green-400 hover:text-green-300 cursor-pointer transition-colors">
-              Solicitar registro.
+            {isRegisterMode ? 'Já tem acesso? ' : 'Ainda não tem acesso? '}
+            <span 
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setAuthMessage({ type: '', text: '' });
+              }}
+              className="text-green-400 hover:text-green-300 cursor-pointer transition-colors"
+            >
+              {isRegisterMode ? 'Iniciar Sessão.' : 'Solicitar registro.'}
             </span>
           </p>
         </div>
