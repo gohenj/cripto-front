@@ -1,11 +1,28 @@
 import { useState, useEffect } from "react";
+import axios from "axios"; 
+import api from "./services/api";
+
+interface Movement {
+  id?: string;
+  type: string;
+  token: string;
+  amount: string | number;
+  newBalance: string | number;
+  createdAt?: string;
+}
+interface UserWallet {
+  token: string;
+  balance: string | number;
+}
 
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [token, setToken] = useState(localStorage.getItem("nexus_token") || "");
-  const [movements, setMovements] = useState<any[]>([]);
+  
+  const [movements, setMovements] = useState<Movement[]>([]);
+  
   const [isLoadingLedger, setIsLoadingLedger] = useState(true);
   const [swapFrom, setSwapFrom] = useState("BRL");
   const [swapTo, setSwapTo] = useState("BTC");
@@ -14,13 +31,11 @@ export default function App() {
   const [isSwapping, setIsSwapping] = useState(false);
   const [activeTab, setActiveTab] = useState("swap");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawStatus, setWithdrawStatus] = useState({
-    type: "",
-    message: "",
-  });
+  const [withdrawStatus, setWithdrawStatus] = useState({ type: "", message: "" });
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authMessage, setAuthMessage] = useState({ type: "", text: "" });
+  const [wallets, setWallets] = useState<UserWallet[]>([]);
 
   function getFriendlyName(type: string) {
     const dictionary: Record<string, string> = {
@@ -32,87 +47,67 @@ export default function App() {
     };
     return dictionary[type] || type;
   }
+
   useEffect(() => {
     if (!token) return;
-    async function fetchLedger() {
+    
+    async function fetchDashboardData() {
       try {
-        const response = await fetch(
-          "https://cripto-back-26of.onrender.com/ledger",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        const result = await response.json();
-        if (response.ok) {
-          setMovements(result.data);
-        }
+        const [historyRes, walletRes] = await Promise.all([
+          api.get("/history?page=1&limit=50"),
+          api.get("/wallet") 
+        ]);
+        
+        const allMovements = historyRes.data.data.flatMap((tx: { movements?: Movement[] }) => tx.movements || []);
+        setMovements(allMovements);
+        
+        setWallets(walletRes.data.wallets || walletRes.data);
+        
       } catch (error) {
-        console.error("Erro ao puxar o extrato:", error);
+        console.error("Erro ao puxar dados do painel:", error);
       } finally {
         setIsLoadingLedger(false);
       }
     }
 
-    fetchLedger();
+    fetchDashboardData();
   }, [token]);
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setAuthMessage({ type: "", text: "" });
 
     try {
-      // Lembre de usar a sua URL do Render aqui!
-      const response = await fetch("https://cripto-back-26of.onrender.com/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao criar conta");
-      }
-
+      await api.post("/register", { email, password });
+      
       setAuthMessage({
         type: "success",
         text: "Conta criada com sucesso! Faça login.",
       });
       setTimeout(() => setIsRegisterMode(false), 2500);
     } catch (err) {
-      if (err instanceof Error) {
-        setAuthMessage({ type: "error", text: err.message });
+
+      if (axios.isAxiosError(err)) {
+        setAuthMessage({ type: "error", text: err.response?.data?.error || "Erro ao criar conta" });
       }
     }
   }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setAuthMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch(
-        "https://cripto-back-26of.onrender.com/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao fazer login");
-      }
-      localStorage.setItem("nexus_token", data.accessToken);
-      setToken(data.accessToken);
+      const response = await api.post("/login", { email, password });
+      
+      const jwt = response.data.token; 
+      
+      localStorage.setItem("nexus_token", jwt);
+      setToken(jwt);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Erro desconhecido ao fazer login");
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || "Erro ao fazer login");
       }
     }
   }
@@ -128,27 +123,11 @@ export default function App() {
     setSwapStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch(
-        "https://cripto-back-26of.onrender.com/swap",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            from: swapFrom,
-            to: swapTo,
-            amount: Number(swapAmount),
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao realizar swap");
-      }
+      await api.post("/swap", {
+        fromToken: swapFrom,
+        toToken: swapTo,
+        amount: String(swapAmount),
+      });
 
       setSwapStatus({
         type: "success",
@@ -158,8 +137,9 @@ export default function App() {
 
       setTimeout(() => window.location.reload(), 2000);
     } catch (err) {
-      if (err instanceof Error) {
-        setSwapStatus({ type: "error", message: err.message });
+      // 6. Fim do sexto 'any'
+      if (axios.isAxiosError(err)) {
+        setSwapStatus({ type: "error", message: err.response?.data?.error || "Erro ao realizar swap" });
       }
     } finally {
       setIsSwapping(false);
@@ -172,26 +152,10 @@ export default function App() {
     setWithdrawStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch(
-        "https://cripto-back-26of.onrender.com/withdraw",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            token: "BRL",
-            amount: Number(withdrawAmount),
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao realizar saque");
-      }
+      await api.post("/withdraw", {
+        token: "BRL",
+        amount: String(withdrawAmount), 
+      });
 
       setWithdrawStatus({
         type: "success",
@@ -199,11 +163,11 @@ export default function App() {
       });
       setWithdrawAmount("");
 
-      // Recarrega para atualizar os saldos
       setTimeout(() => window.location.reload(), 2000);
     } catch (err) {
-      if (err instanceof Error) {
-        setWithdrawStatus({ type: "error", message: err.message });
+      // O último bloco tratado
+      if (axios.isAxiosError(err)) {
+        setWithdrawStatus({ type: "error", message: err.response?.data?.error || "Erro ao realizar saque" });
       }
     } finally {
       setIsWithdrawing(false);
@@ -248,7 +212,7 @@ export default function App() {
                   </p>
                   <p className="text-2xl font-bold text-green-400 tracking-wide">
                     {Number(
-                      movements.find((m) => m.token === "BRL")?.newBalance || 0,
+                      wallets.find((w) => w.token === "BRL")?.balance || 0,
                     ).toLocaleString("pt-BR", {
                       style: "currency",
                       currency: "BRL",
@@ -263,7 +227,7 @@ export default function App() {
                   </p>
                   <p className="text-2xl font-bold text-orange-400 tracking-wide">
                     {Number(
-                      movements.find((m) => m.token === "BTC")?.newBalance || 0,
+                      wallets.find((w) => w.token === "BTC")?.balance || 0,
                     ).toFixed(6)}
                   </p>
                   <p className="text-xs text-slate-600 mt-2">BTC</p>
@@ -276,7 +240,7 @@ export default function App() {
                   </p>
                   <p className="text-2xl font-bold text-blue-400 tracking-wide">
                     {Number(
-                      movements.find((m) => m.token === "ETH")?.newBalance || 0,
+                      wallets.find((w) => w.token === "ETH")?.balance || 0,
                     ).toFixed(6)}
                   </p>
                   <p className="text-xs text-slate-600 mt-2">ETH</p>
@@ -298,9 +262,9 @@ export default function App() {
                   </p>
                 </div>
               ) : (
-                movements.map((mov) => (
+                movements.map((mov, index) => (
                   <div
-                    key={mov.id}
+                    key={index}
                     className="flex justify-between items-center p-4 bg-black/40 border border-white/5 rounded-xl hover:bg-black/60 transition-colors"
                   >
                     <div className="flex items-center gap-4">
@@ -312,8 +276,7 @@ export default function App() {
                           {getFriendlyName(mov.type)}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {new Date(mov.createdAt).toLocaleDateString("pt-BR")}{" "}
-                          - {mov.token}
+                          {mov.token}
                         </p>
                       </div>
                     </div>
@@ -493,6 +456,7 @@ export default function App() {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-green-500/30">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/20 rounded-full blur-[120px] pointer-events-none"></div>
@@ -537,7 +501,7 @@ export default function App() {
 
             <div className="space-y-2">
               <label className="text-xs text-slate-400 tracking-wider uppercase">
-                {isRegisterMode ? 'Senha (mín. 8 caracteres, letras, números e símbolos)' : 'Chave de Segurança'}
+                {isRegisterMode ? 'Senha (mín. 8 caracteres)' : 'Chave de Segurança'}
               </label>
               <input
                 type="password"
