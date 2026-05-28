@@ -1,91 +1,83 @@
-# Nexus Front
+# ⚡ Nexus Cripto - Web (Frontend)
 
-A modern React frontend application built with Vite, TypeScript, and Tailwind CSS.
+Interface web da plataforma Nexus Cripto. O projeto foi desenhado fugindo de bibliotecas de componentes genéricos, adotando uma identidade visual **Neobrutalista** customizada, com animações em gradiente e foco total em uma experiência de usuário moderna e fluida.
 
-## Features
+---
 
-- ⚡ Fast development with Vite
-- ⚛️ React 19 with TypeScript
-- 🎨 Styled with Tailwind CSS
-- 🔧 ESLint for code quality
-- 📦 Modern build tooling
+## 🛠️ Tecnologias Utilizadas
 
-## Tech Stack
+* **React** + **Vite**
+* **TypeScript**
+* **Tailwind CSS** (Estilização utilitária e design neobrutalista)
+* **React Router DOM** (Navegação SPA)
+* **Axios** (Comunicação com a API)
 
-- **Framework:** React 19
-- **Build Tool:** Vite
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **Linting:** ESLint
+---
 
-## Prerequisites
+## ✨ Principais Funcionalidades
 
-- Node.js (version 18 or higher)
-- npm or yarn
+### 📊 Dashboard Interativo
 
-## Installation
+Visualização do saldo total e balanço individual das carteiras (BRL, BTC, ETH).
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd nexus-front
-   ```
+### 🎨 UI/UX Neobrutalista
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Componentes criados do zero, garantindo uma identidade única com contrastes fortes e feedback visual imediato.
 
-## Usage
+### ⚡ Swap em Tempo Real
 
-### Development
+Interface fluida para simulação e efetivação de conversão entre moedas, comunicando-se com as cotações ao vivo do backend blindado.
 
-Start the development server:
+### 🔐 Proteção de Rotas
+
+Telas internas acessíveis apenas com token JWT válido.
+
+---
+
+## 🚀 Como rodar localmente
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/gohenj/nexus-frontend.git
+```
+
+### 2. Instale as dependências
+
+```bash
+npm install
+```
+
+### 3. Crie o arquivo `.env`
+
+Na raiz do projeto:
+
+```env
+VITE_API_URL="http://localhost:3333"
+```
+
+### 4. Inicie o servidor
+
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`.
+---
 
-### Build
+## 🌐 Acesso Local
 
-Build the application for production:
+Abra no navegador:
+
 ```bash
-npm run build
+http://localhost:5173
 ```
 
-### Preview
+---
 
-Preview the production build:
+## 🚀 Deploy
+
+O frontend está configurado para deploy contínuo na **Vercel**, com regras de reescrita de rotas (SPA fallback) devidamente configuradas no arquivo:
+
 ```bash
-npm run preview
+vercel.json
 ```
-
-### Linting
-
-Run ESLint to check code quality:
-```bash
-npm run lint
-```
-
-## Project Structure
-
-```
-src/
-├── App.tsx          # Main application component
-├── main.tsx         # Application entry point
-├── index.css        # Global styles
-└── assets/          # Static assets
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## License
-
-This project is private and proprietary.
